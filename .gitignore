@@ -221,3 +221,6 @@ __marimo__/
 
 # macOS
 .DS_Store
+
+# Week 3 RAG tool: local Chroma database (rebuilt from the documents)
+week-03/chroma_db/

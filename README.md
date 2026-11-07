@@ -9,3 +9,5 @@ This repository holds materials created for GBUS 562: AI Language Models at the 
    - [Connect Four](week-01/connect-four.html): a single-page browser game of Connect Four. Play against a computer opponent with three difficulty levels, or switch to two-player mode to take turns with a friend on the same screen.
 2. week-02
    - [Prompt Lab](week-02/prompt-lab.html): a web app for testing prompts against Claude, built with Claude Code.
+3. week-03
+   - Week 3: a [RAG tool](week-03/ask.py) that answers questions from Copperline Manufacturing's finance documents, built with Claude Code.
