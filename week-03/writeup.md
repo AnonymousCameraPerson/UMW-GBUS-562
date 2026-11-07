@@ -5,7 +5,7 @@ I used Claude to make a RAG tool that takes Larkfield's documents and uses the s
 Chunking method: structure.
 Makes sense on its own: Partly. Some chunks depend on a definition in another section or point to text that isn't included in the chunk. An example is a chunk that includes 'as described below', but it is cut off there and doesn't include the description below it.
 Label and source: Both. The label is in the chunk itself, as every chunk starts with 'Document' and 'Section' lines. The source file is stored as metadata by Chroma. I know this by asking Claude.
-Short enough: Yes. Claude told me that the tokenizer file stores a 128-token limit, and that every chunk is short enough for the embedding model to read in full. The longest chunk is 155 tokens, while a typical one is 64 tokens.
+Short enough: Yes. Claude told me Chroma uses a 256-token limit, and that every chunk is short enough for the embedding model to read in full. The longest chunk is 155 tokens, while a typical one is 64 tokens.
 
 ## Example Run
 Top 4 retrieved chunks:
