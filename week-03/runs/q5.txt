@@ -1,0 +1,14 @@
+Top 4 retrieved chunks:
+  #1  similarity 0.529  funds-availability-policy.html
+      Document: Funds Availability Policy Section: Check deposits  For checks deposited at a branch or a Larkfield ATM, the first $275 of the day's check de...
+  #2  similarity 0.482  funds-availability-policy.html
+      Document: Funds Availability Policy Section: Mobile check deposits  Checks deposited with the Larkfield mobile app follow the same availability as che...
+  #3  similarity 0.452  funds-availability-policy.html
+      Document: Funds Availability Policy Section: Cash, direct deposits, and wire transfers  Cash deposited at a branch, direct deposits such as payroll, a...
+  #4  similarity 0.422  funds-availability-policy.html
+      Document: Funds Availability Policy Section: Business days and cutoff times  A business day is Monday through Friday, except federal holidays. A depos...
+
+ANSWER
+According to the policy, $275 of the day's check deposits is available on the next business day, with the rest available on the second business day after deposit [funds-availability-policy.html].
+
+So for a $2,000 paycheck deposited at a branch, the member can use **$275** on the next business day.

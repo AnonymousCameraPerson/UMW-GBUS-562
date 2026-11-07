@@ -1,0 +1,17 @@
+Top 4 retrieved chunks:
+  #1  similarity 0.707  consumer-fee-schedule.html
+      Document: Consumer Fee Schedule Section: Overdraft and returned item fees  When Larkfield pays a check, debit card purchase, or automatic payment that...
+  #2  similarity 0.700  consumer-fee-schedule-v7.html
+      Document: Consumer Fee Schedule Section: Overdraft and returned item fees  When Larkfield pays a check, debit card purchase, or automatic payment that...
+  #3  similarity 0.639  consumer-fee-schedule-v7.html
+      Document: Consumer Fee Schedule Section: Checking account monthly fees  Everyday Checking has no monthly service fee. Plus Checking has a monthly serv...
+  #4  similarity 0.639  consumer-fee-schedule.html
+      Document: Consumer Fee Schedule Section: Checking account monthly fees  Everyday Checking has no monthly service fee. Plus Checking has a monthly serv...
+
+ANSWER
+There are two versions of the fee schedule with different amounts:
+
+- **consumer-fee-schedule.html**: The overdraft fee is $29 per item paid (and returned item fee $29 per item returned), with no more than three such fees charged per account per business day. No fee is charged if the account is overdrawn by $10 or less at day's end [consumer-fee-schedule.html].
+- **consumer-fee-schedule-v7.html**: The overdraft fee is $35 per item paid (and returned item fee $35 per item returned), with no more than four such fees charged per account per business day. This version does not mention a $10 cushion exemption [consumer-fee-schedule-v7.html].
+
+Both versions note that an overdraft transfer from a linked savings account is free [consumer-fee-schedule.html][consumer-fee-schedule-v7.html]. Since the sources conflict (likely due to a policy update), you may want to confirm which version (v7 or the original) is currently in effect.
