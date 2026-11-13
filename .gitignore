@@ -224,3 +224,7 @@ __marimo__/
 
 # Week 3 RAG tool: local Chroma database (rebuilt from the documents)
 week-03/chroma_db/
+week-04/chroma_db/
+
+# Week 4 agent run logs (they show the sandbox Gmail address)
+week-04/runs/

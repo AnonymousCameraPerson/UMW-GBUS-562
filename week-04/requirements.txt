@@ -1,0 +1,6 @@
+# Install from the top of the repository:  .venv/bin/pip install -r week-04/requirements.txt
+mcp>=2.3,<3          # official MCP Python SDK: the server (MCPServer) and agent.py's client
+anthropic>=2.6       # Claude API: agent.py's tool-use loop (week-03/ask.py also uses it)
+chromadb>=1.5        # vector database + built-in local embedding model
+beautifulsoup4>=4.12 # HTML loading (reused from week-03/ask.py)
+pdfplumber>=0.11     # PDF loading (week-03/ask.py, which the server imports)
