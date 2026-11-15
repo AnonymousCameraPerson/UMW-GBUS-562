@@ -226,5 +226,5 @@ __marimo__/
 week-03/chroma_db/
 week-04/chroma_db/
 
-# Week 4 agent run logs (they show the sandbox Gmail address)
-week-04/runs/
+# Week 4 Gmail inbox run logs (they show the sandbox Gmail address)
+week-04/runs/inbox-run*.txt

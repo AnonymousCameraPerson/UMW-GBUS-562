@@ -1,20 +1,33 @@
-"""MCP server for Hartwell Foods HR: a policy search and a leave balance lookup.
+"""MCP server for an organization's HR: a policy search and a leave balance lookup.
 
 Usage (from the top of the repository):
-    .venv/bin/python week-04/hr_mcp_server.py               # HR staff mode (stdio)
+    .venv/bin/python week-04/hr_mcp_server.py               # HR staff mode (stdio), Hartwell Foods
+    .venv/bin/python week-04/hr_mcp_server.py --org week-04/ridgeline-hotels
     .venv/bin/python week-04/hr_mcp_server.py --as-employee dana.whitfield@hartwellfoods.example
-    .venv/bin/python week-04/hr_mcp_server.py --rebuild     # rebuild the database and exit
+    .venv/bin/python week-04/hr_mcp_server.py --org week-04/ridgeline-hotels --rebuild
+
+--org FOLDER names an organization folder laid out like this:
+    FOLDER/hr-docs/            the HR policy documents (HTML, PDF, text, ...)
+    FOLDER/employees.csv       one row per employee, with a header row
+    FOLDER/system_prompt.txt   the agent's instructions (read by agent.py)
+Without --org, week-04/hartwell-hr is used.
 
 Tools:
     search_policy(query)        the 4 closest chunks of the HR documents, with source files
     get_leave_balance(email)    HR staff mode: any employee's balance, by work email
     get_leave_balance()         --as-employee mode: only that one employee's balance
 
-The HR documents in week-04/hartwell-hr/hr-docs/ are loaded and chunked with the
-same code as week-03/ask.py (one chunk per section, each starting with its
-document title and section heading), and stored in a Chroma database in
-week-04/chroma_db/ (gitignored). The database rebuilds itself when a document
-is added, removed or edited, or on demand with --rebuild.
+Column names in employees.csv aren't fixed. They are worked out from the header row:
+the email column is the one whose header mentions "email" (or, failing that, whose
+values are all email addresses); balance columns are numeric columns whose header
+mentions "left", "remaining", "balance", "available", or "days"/"hours". The name
+column, if any, is the one whose header mentions "name"; every other column is
+returned as extra details (department, hotel, supervisor, ...).
+
+The HR documents are chunked with the same code as week-03/ask.py and stored in a
+Chroma database in week-04/chroma_db/<organization folder name>/ (gitignored), so
+each organization has its own database. It rebuilds itself when a document is
+added, removed or edited, or on demand with --rebuild.
 
 The server never calls Claude, so it needs no API key. It talks MCP over
 stdin/stdout, so everything it logs goes to stderr.
@@ -36,21 +49,23 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
 HERE = Path(__file__).resolve().parent
-DATA_DIR = HERE / "hartwell-hr"
-DOCS_DIR = DATA_DIR / "hr-docs"
-EMPLOYEES_CSV = DATA_DIR / "employees.csv"
-DB_DIR = HERE / "chroma_db"
+DEFAULT_ORG = HERE / "hartwell-hr"
+DB_ROOT = HERE / "chroma_db"
 COLLECTION = "hr_docs"
 TOP_K = 4
-BALANCE_FIELDS = ("vacation_days_left", "sick_days_left", "personal_days_left")
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, destructiveHint=False,
                             idempotentHint=True, openWorldHint=False)
 
+EMAIL_RE = re.compile(r"^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$")
+NUMBER_RE = re.compile(r"^-?\d+(\.\d+)?$")
+BALANCE_WORDS = ("left", "remaining", "balance", "available")
+UNIT_WORDS = ("days", "day", "hours", "hrs")
+
 
 class PolicyChunk(TypedDict):
     rank: int
-    source: str       # file name to cite, e.g. leave-policy.html
+    source: str       # file name to cite, e.g. pto-policy.html
     title: str
     section: str
     similarity: float  # cosine similarity, higher is closer
@@ -64,12 +79,9 @@ class SearchResult(TypedDict):
 
 class LeaveBalance(TypedDict):
     email: str
-    name: str
-    department: str
-    manager: str | None
-    vacation_days_left: int
-    sick_days_left: int
-    personal_days_left: int
+    name: str | None
+    balances: dict[str, int | float | None]   # keyed by the column header, e.g. "PTO Days Remaining"
+    details: dict[str, str]                   # the other columns, e.g. "Hotel", "Supervisor"
 
 
 def log(message):
@@ -90,18 +102,64 @@ ask = load_week03_ask()
 
 
 # ---------------------------------------------------------------------------
-# Policy search (Chroma database in week-04/chroma_db/)
+# The organization folder
+# ---------------------------------------------------------------------------
+
+class Org:
+    """Paths and names for one organization folder."""
+
+    def __init__(self, folder):
+        self.dir = Path(folder).resolve()
+        self.docs_dir = self.dir / "hr-docs"
+        self.employees_csv = self.dir / "employees.csv"
+        self.system_prompt = self.dir / "system_prompt.txt"
+        self.db_dir = DB_ROOT / self.dir.name
+        self.name = self._display_name()
+
+    def check(self):
+        """Return a list of problems with the folder (empty if it's usable)."""
+        problems = []
+        if not self.dir.is_dir():
+            return [f"{self.dir} is not a folder"]
+        if not self.docs_dir.is_dir():
+            problems.append(f"missing folder {self.docs_dir.name}/")
+        if not self.employees_csv.is_file():
+            problems.append(f"missing file {self.employees_csv.name}")
+        return problems
+
+    def _display_name(self):
+        """'Ridgeline Hotels' from 'You are the HR assistant for Ridgeline Hotels.',
+        or else from the folder name."""
+        try:
+            text = self.system_prompt.read_text(encoding="utf-8")
+            match = re.search(r"\bfor ([A-Z][\w&'.\- ]{1,60}?)(?:[.,;]|\s+You\b)", text)
+            if match:
+                return match.group(1).strip()
+        except OSError:
+            pass
+        return self.dir.name.replace("-", " ").replace("_", " ").title()
+
+    def topics(self):
+        files, _ = ask.document_files(self.docs_dir)
+        return ", ".join(p.stem.replace("-", " ").replace("_", " ") for p in files)
+
+
+ORG = Org(DEFAULT_ORG)  # replaced by main() when --org is given
+
+
+# ---------------------------------------------------------------------------
+# Policy search (one Chroma database per organization)
 # ---------------------------------------------------------------------------
 
 _collection = None  # cached between tool calls
 
 
 def build_index(client):
-    files, skipped = ask.document_files(DOCS_DIR)
+    files, skipped = ask.document_files(ORG.docs_dir)
     for path in skipped:
         log(f"  Skipping {path.name}: unsupported file type {path.suffix or '(none)'}")
     if not files:
-        raise RuntimeError(f"No supported documents found in {DOCS_DIR}")
+        raise RuntimeError(f"No supported documents found in {ORG.docs_dir}")
 
     try:
         client.delete_collection(COLLECTION)
@@ -109,25 +167,26 @@ def build_index(client):
         pass  # nothing to delete on the first build
     collection = client.create_collection(
         COLLECTION, metadata={"hnsw:space": "cosine",
-                              "fingerprint": ask.fingerprint(files, DOCS_DIR)})
+                              "fingerprint": ask.fingerprint(files, ORG.docs_dir)})
     total = 0
     for path in files:
-        chunks = ask.make_chunks(path, DOCS_DIR)
+        chunks = ask.make_chunks(path, ORG.docs_dir)
         if chunks:
             collection.add(ids=[c["id"] for c in chunks],
                            documents=[c["text"] for c in chunks],
                            metadatas=[c["metadata"] for c in chunks])
         log(f"  {path.name}: {len(chunks)} chunks")
         total += len(chunks)
-    log(f"Indexed {total} chunks from {len(files)} documents into {DB_DIR.relative_to(HERE.parent)}/")
+    log(f"Indexed {total} chunks from {len(files)} documents into "
+        f"{ORG.db_dir.relative_to(HERE.parent)}/")
     return collection
 
 
 def get_collection(rebuild=False):
-    """Open the database, rebuilding it if asked or if the documents changed."""
+    """Open the organization's database, rebuilding it if asked or if the documents changed."""
     global _collection
-    files, _ = ask.document_files(DOCS_DIR)
-    current = ask.fingerprint(files, DOCS_DIR)
+    files, _ = ask.document_files(ORG.docs_dir)
+    current = ask.fingerprint(files, ORG.docs_dir)
     if (not rebuild and _collection is not None
             and (_collection.metadata or {}).get("fingerprint") == current):
         return _collection
@@ -135,7 +194,7 @@ def get_collection(rebuild=False):
     # Libraries can print (e.g. while downloading the embedding model);
     # keep that off stdout so it can't corrupt the MCP connection.
     with contextlib.redirect_stdout(sys.stderr):
-        client = chromadb.PersistentClient(path=str(DB_DIR),
+        client = chromadb.PersistentClient(path=str(ORG.db_dir),
                                            settings=Settings(anonymized_telemetry=False))
         collection = None
         if not rebuild:
@@ -145,7 +204,7 @@ def get_collection(rebuild=False):
                     log("The HR documents have changed. Rebuilding the database...")
                     collection = None
             except Exception:
-                log("No database yet. Building it...")
+                log(f"No database yet for {ORG.dir.name}. Building it...")
         else:
             log("Rebuilding the database...")
         if collection is None:
@@ -187,6 +246,70 @@ def normalize_email(value):
     return (match.group(1) if match else value).strip().lower()
 
 
+def _words(header):
+    """'PTO Days Remaining' / 'vacation_days_left' -> {'pto', 'days', 'remaining'} etc."""
+    return set(re.sub(r"[^a-z0-9]+", " ", header.lower()).split())
+
+
+def detect_columns(headers, rows):
+    """Work out which columns hold the email, the name, and the balances.
+
+    Returns (email column, name column or None, [balance columns]).
+    Raises ValueError if there's no email column or no balance column.
+    """
+    headers = [h for h in headers if h is not None and h.strip()]
+
+    def values(h):
+        return [(r.get(h) or "").strip() for r in rows if (r.get(h) or "").strip()]
+
+    def all_numeric(h):
+        v = values(h)
+        return bool(v) and all(NUMBER_RE.match(x) for x in v)
+
+    def all_emails(h):
+        v = values(h)
+        return bool(v) and all(EMAIL_RE.match(normalize_email(x)) for x in v)
+
+    mentions_email = [h for h in headers
+                      if _words(h) & {"email", "mail"} or "e-mail" in h.lower()
+                      or "email" in h.lower().replace(" ", "").replace("_", "")]
+    email_col = next((h for h in mentions_email if all_emails(h)), None)
+    email_col = email_col or next((h for h in headers if all_emails(h)), None)
+    if email_col is None:
+        raise ValueError(f"no column of email addresses (headers: {', '.join(headers)})")
+
+    name_candidates = [h for h in headers if h != email_col and "name" in _words(h)]
+    # prefer "name" / "employee name" / "full name" over "manager name" etc.
+    name_col = next((h for h in name_candidates
+                     if not _words(h) & {"manager", "supervisor", "hotel", "department"}),
+                    name_candidates[0] if name_candidates else None)
+
+    balance_cols = [h for h in headers
+                    if h not in (email_col, name_col) and all_numeric(h)
+                    and (_words(h) & set(BALANCE_WORDS) or _words(h) & set(UNIT_WORDS))]
+    if not balance_cols:
+        raise ValueError("no leave balance columns (numeric columns whose header mentions "
+                         f"days, hours, left, remaining or balance; headers: {', '.join(headers)})")
+    return email_col, name_col, balance_cols
+
+
+def read_employees():
+    """Return (rows, email column, name column, balance columns)."""
+    with ORG.employees_csv.open(newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        headers = reader.fieldnames or []
+    return (rows, *detect_columns(headers, rows))
+
+
+def to_number(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    number = float(value)
+    return int(number) if number.is_integer() else number
+
+
 def no_record_error(email):
     shown = email or "(no address given)"
     return ToolError(
@@ -198,16 +321,17 @@ def no_record_error(email):
 def lookup_balance(email):
     email = normalize_email(email)
     if email:
-        with EMPLOYEES_CSV.open(newline="", encoding="utf-8-sig") as f:
-            for row in csv.DictReader(f):
-                if normalize_email(row["email"]) == email:
-                    record = {"email": row["email"].strip(),
-                              "name": row["name"].strip(),
-                              "department": row["department"].strip(),
-                              "manager": row["manager"].strip() or None}
-                    for field in BALANCE_FIELDS:
-                        record[field] = int(row[field])
-                    return record
+        rows, email_col, name_col, balance_cols = read_employees()
+        for row in rows:
+            if normalize_email(row.get(email_col)) == email:
+                skip = {email_col, name_col, *balance_cols}
+                return {
+                    "email": row[email_col].strip(),
+                    "name": (row.get(name_col) or "").strip() or None if name_col else None,
+                    "balances": {h: to_number(row.get(h)) for h in balance_cols},
+                    "details": {h: (row.get(h) or "").strip() for h in row
+                                if h and h not in skip},
+                }
     raise no_record_error(email)
 
 
@@ -216,48 +340,41 @@ def lookup_balance(email):
 # ---------------------------------------------------------------------------
 
 def create_server(as_employee=None):
+    org = ORG.name
     mcp = MCPServer(
-        name="hartwell-hr",
-        instructions=("Tools for answering Hartwell Foods employees' HR questions. "
+        name=f"{ORG.dir.name}-hr",
+        instructions=(f"Tools for answering {org} employees' HR questions. "
                       "Use search_policy for policy facts and cite the source file of each; "
                       "use get_leave_balance for remaining leave days. Never state a policy "
                       "or a number that didn't come from these tools."),
     )
 
-    @mcp.tool(annotations=READ_ONLY)
+    @mcp.tool(annotations=READ_ONLY, description=(
+        f"Search {org}'s HR policy documents ({ORG.topics()}).\n\n"
+        "Returns the 4 closest document sections. Each result has the source file "
+        "to cite, the document title and section heading, a similarity score "
+        "(higher is closer) and the full section text. Base answers only on the "
+        "returned text, and say so if it doesn't answer the question.\n\n"
+        "Args:\n    query: what to look for, e.g. \"carry over unused days off\""))
     def search_policy(query: str) -> SearchResult:
-        """Search Hartwell Foods' HR policy documents (leave, vacation, parental and
-        family leave, benefits enrollment, remote work, reporting workplace concerns).
-
-        Returns the 4 closest document sections. Each result has the source file
-        to cite, the document title and section heading, a similarity score
-        (higher is closer) and the full section text. Base answers only on the
-        returned text, and say so if it doesn't answer the question.
-
-        Args:
-            query: what to look for, e.g. "carry over unused vacation days"
-        """
         return search(query)
 
+    returns = ("the employee's name, their leave balances (keyed by the employee file's "
+               "column names, e.g. days remaining of each leave type), and other details "
+               "from their record such as department, location or supervisor")
     if as_employee is None:
-        @mcp.tool(annotations=READ_ONLY)
+        @mcp.tool(annotations=READ_ONLY, description=(
+            f"Look up one {org} employee's remaining leave by their work email address "
+            f"(for HR staff). Returns {returns}. If no record matches, it returns an "
+            "error: then do not state any balance.\n\n"
+            "Args:\n    email: the employee's work email address"))
         def get_leave_balance(email: str) -> LeaveBalance:
-            """Look up one employee's remaining leave days by their work email address
-            (for HR staff). Returns name, department, manager, and vacation, sick and
-            personal days left. If no record matches, it returns an error: then do not
-            state any balance.
-
-            Args:
-                email: the employee's work email, e.g. dana.whitfield@hartwellfoods.example
-            """
             return lookup_balance(email)
     else:
-        @mcp.tool(annotations=READ_ONLY,
-                  description=(
-                      f"Return the remaining leave days of the employee this server is set "
-                      f"up for ({as_employee}): name, department, manager, and vacation, "
-                      f"sick and personal days left. It can't look up anyone else. If no "
-                      f"record matches, it returns an error: then do not state any balance."))
+        @mcp.tool(annotations=READ_ONLY, description=(
+            f"Return the remaining leave of the {org} employee this server is set up for "
+            f"({as_employee}): {returns}. It can't look up anyone else. If no record "
+            "matches, it returns an error: then do not state any balance."))
         def get_leave_balance() -> LeaveBalance:
             return lookup_balance(as_employee)
 
@@ -265,14 +382,31 @@ def create_server(as_employee=None):
 
 
 def main():
+    global ORG
     parser = argparse.ArgumentParser(
-        description="MCP server with Hartwell Foods HR tools (policy search, leave balances).")
+        description="MCP server with an organization's HR tools (policy search, leave balances).")
+    parser.add_argument("--org", type=Path, metavar="FOLDER", default=DEFAULT_ORG,
+                        help="organization folder with hr-docs/, employees.csv and "
+                             "system_prompt.txt (default: week-04/hartwell-hr)")
     parser.add_argument("--as-employee", metavar="EMAIL",
                         help="serve only this employee's leave balance; "
                              "get_leave_balance then takes no inputs")
     parser.add_argument("--rebuild", action="store_true",
-                        help="rebuild the Chroma database from hr-docs/ and exit")
+                        help="rebuild the organization's Chroma database from hr-docs/ and exit")
     args = parser.parse_args()
+
+    ORG = Org(args.org)
+    problems = ORG.check()
+    if problems:
+        parser.error(f"--org {args.org}: " + "; ".join(problems))
+    try:
+        _, email_col, name_col, balance_cols = read_employees()
+    except (ValueError, OSError, csv.Error) as exc:
+        parser.error(f"can't read {ORG.employees_csv}: {exc}")
+    shown = ORG.dir.relative_to(HERE.parent) if ORG.dir.is_relative_to(HERE.parent) else ORG.dir
+    log(f"Organization: {ORG.name} ({shown})")
+    log(f"Employee file columns: email = {email_col!r}, name = {name_col!r}, "
+        f"balances = {', '.join(repr(c) for c in balance_cols)}")
 
     if args.rebuild:
         get_collection(rebuild=True)

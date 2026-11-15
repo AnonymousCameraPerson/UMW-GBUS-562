@@ -1,0 +1,46 @@
+Sender:  Tyler Reed <tyler.reed@ridgelinehotels.example>
+Subject: Trip planning
+Email:   week-04/ridgeline-hotels/sample-emails/04-tyler-coworker.eml
+Org:     week-04/ridgeline-hotels
+Model:   claude-sonnet-5
+
+Organization: Ridgeline Hotels (week-04/ridgeline-hotels)
+Employee file columns: email = 'Email Address', name = 'Employee Name', balances = 'PTO Days Remaining', 'Sick Days Remaining'
+Employee mode: get_leave_balance serves only tyler.reed@ridgelinehotels.example
+Tools:  search_policy, get_leave_balance, save_reply
+
+Step 1: search_policy
+  input:  {"query": "how to check PTO balance"}
+  result: {   "query": "how to check PTO balance",   "results": [     {       "rank": 1,       "source": "pto-policy.html",       "title": "Paid Time Off (PTO) Policy",       "section": "Carrying PTO into next year",       "similarity": 0.441,       "text": "Document: Paid Time Off (PTO) Policy\nSection: Carr...
+
+Step 2: save_reply
+  input:  {"reply_text": "Hi Tyler,\n\nThanks for reaching out, and good luck with the trip planning!\n\nI'm not able to share another team member's PTO balance, even with their permission, since I only have access to your own records. The best way for Jenna to find out her remaining PTO days is to check with People and Culture directly or ask her supervisor.\n\nFor your part, when you're ready to request time off, you can submit it through your hotel's scheduling system \u2014 just keep in mind that requests of 4 days or fewer need supervisor approval at least 14 days ahead, and requests of 5+ consecutive days need approval at least 30 days ahead (per our PTO Policy, pto-policy.html).\n\nHope you two land on some great dates!\n\nBest,\nPeople and Culture\n", "needs_human_review": false}
+  result: Draft saved to week-04/drafts/20261114-131408-ridgeline-hotels-04-tyler-coworker.txt. It has not been sent.
+
+Claude: I've drafted a reply letting Tyler know we can't share Jenna's PTO balance (only her own records holder or her supervisor can confirm that), and included the general PTO request timing rules for his own planning, with the policy cited. The draft has been saved for review.
+
+============================================================
+Stopped: Claude replied without a tool request (stop reason: end_turn).
+Tool calls: 2
+============================================================
+Not sent. Saved to week-04/drafts/20261114-131408-ridgeline-hotels-04-tyler-coworker.txt
+To: tyler.reed@ridgelinehotels.example
+Subject: Re: Trip planning
+In reply to: 04-tyler-coworker.eml
+
+DRAFT
+Hi Tyler,
+
+Thanks for reaching out, and good luck with the trip planning!
+
+I'm not able to share another team member's PTO balance, even with their permission, since I only have access to your own records. The best way for Jenna to find out her remaining PTO days is to check with People and Culture directly or ask her supervisor.
+
+For your part, when you're ready to request time off, you can submit it through your hotel's scheduling system — just keep in mind that requests of 4 days or fewer need supervisor approval at least 14 days ahead, and requests of 5+ consecutive days need approval at least 30 days ahead (per our PTO Policy, pto-policy.html).
+
+Hope you two land on some great dates!
+
+Best,
+People and Culture
+Needs human review: false
+
+Tokens: 7,320 input, 760 output

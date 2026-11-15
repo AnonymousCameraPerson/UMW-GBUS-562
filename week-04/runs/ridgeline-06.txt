@@ -1,0 +1,40 @@
+Sender:  Danielle Price <danielle.price@ridgelinehotels.example>
+Subject: A guest
+Email:   week-04/ridgeline-hotels/sample-emails/06-danielle-guest.eml
+Org:     week-04/ridgeline-hotels
+Model:   claude-sonnet-5
+
+Organization: Ridgeline Hotels (week-04/ridgeline-hotels)
+Employee file columns: email = 'Email Address', name = 'Employee Name', balances = 'PTO Days Remaining', 'Sick Days Remaining'
+Employee mode: get_leave_balance serves only danielle.price@ridgelinehotels.example
+Tools:  search_policy, get_leave_balance, save_reply
+
+Step 1: save_reply
+  input:  {"reply_text": "Hi Danielle,\n\nThank you for trusting us with this, and I'm really sorry you've been dealing with this situation. What you're describing is not something you should have to just \"avoid\" or tolerate as part of the job, and I want to make sure it's handled properly.\n\nI'm flagging this for a member of our People and Culture team to follow up with you directly and promptly \u2014 they will reach out to discuss what's happened and the appropriate next steps, including options for your safety and comfort at work in the meantime.\n\nPlease don't hesitate to reach out in the meantime if anything else comes up or if you need support sooner.\n\nTake care,\nPeople and Culture", "needs_human_review": true}
+  result: Draft saved to week-04/drafts/20261114-131609-ridgeline-hotels-06-danielle-guest.txt. It has not been sent.
+
+Claude: I've drafted a reply to Danielle acknowledging her concern with care, and flagged it for immediate review by the People and Culture team, since this involves guest harassment and requires a person to follow up directly rather than a policy-based response.
+
+============================================================
+Stopped: Claude replied without a tool request (stop reason: end_turn).
+Tool calls: 1
+============================================================
+Not sent. Saved to week-04/drafts/20261114-131609-ridgeline-hotels-06-danielle-guest.txt
+To: danielle.price@ridgelinehotels.example
+Subject: Re: A guest
+In reply to: 06-danielle-guest.eml
+
+DRAFT
+Hi Danielle,
+
+Thank you for trusting us with this, and I'm really sorry you've been dealing with this situation. What you're describing is not something you should have to just "avoid" or tolerate as part of the job, and I want to make sure it's handled properly.
+
+I'm flagging this for a member of our People and Culture team to follow up with you directly and promptly — they will reach out to discuss what's happened and the appropriate next steps, including options for your safety and comfort at work in the meantime.
+
+Please don't hesitate to reach out in the meantime if anything else comes up or if you need support sooner.
+
+Take care,
+People and Culture
+Needs human review: true
+
+Tokens: 3,550 input, 447 output

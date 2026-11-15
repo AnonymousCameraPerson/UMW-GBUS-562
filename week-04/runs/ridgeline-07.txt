@@ -1,0 +1,54 @@
+Sender:  Logan Brooks <logan.brooks@ridgelinehotels.example>
+Subject: Days off
+Email:   week-04/ridgeline-hotels/sample-emails/07-logan-seasonal.eml
+Org:     week-04/ridgeline-hotels
+Model:   claude-sonnet-5
+
+Organization: Ridgeline Hotels (week-04/ridgeline-hotels)
+Employee file columns: email = 'Email Address', name = 'Employee Name', balances = 'PTO Days Remaining', 'Sick Days Remaining'
+Warning: no employee record matches logan.brooks@ridgelinehotels.example; get_leave_balance will return an error
+Tools:  search_policy, get_leave_balance, save_reply
+
+Step 1: get_leave_balance
+  input:  {}
+[11/14/26 13:17:52] INFO     Tool 'get_leave_balance' failed:      server.py:453
+                             'Error executing tool                              
+                             get_leave_balance: No employee record              
+                             matches                                            
+                             logan.brooks@ridgelinehotels.example.              
+                             Do not state, estimate or guess any                
+                             leave balance for this person. Say                 
+                             that HR will check their record and                
+                             follow up, and flag the reply for                  
+                             human review.'                                     
+  result (error): Error executing tool get_leave_balance: No employee record matches logan.brooks@ridgelinehotels.example. Do not state, estimate or guess any leave balance for this person. Say that HR will check their record and follow up, and flag the reply for human review.
+
+Step 2: save_reply
+  input:  {"reply_text": "Hi Logan,\n\nThanks for reaching out, and welcome to the Durango hotel team!\n\nI wasn't able to pull up your PTO balance from our system automatically, so I've flagged this for a member of the People and Culture team to look into your record directly and follow up with the exact number of days you have remaining.\n\nThanks for your patience, and we'll be in touch soon.\n\nBest,\nPeople and Culture", "needs_human_review": true}
+  result: Draft saved to week-04/drafts/20261114-131754-ridgeline-hotels-07-logan-seasonal.txt. It has not been sent.
+
+Claude: I've saved a draft reply to Logan. Since no employee record could be found matching his email address, I was unable to retrieve or state any PTO balance — per policy, I flagged this for human review so People and Culture can look up his record directly and follow up with the correct information.
+
+============================================================
+Stopped: Claude replied without a tool request (stop reason: end_turn).
+Tool calls: 2
+============================================================
+Not sent. Saved to week-04/drafts/20261114-131754-ridgeline-hotels-07-logan-seasonal.txt
+To: logan.brooks@ridgelinehotels.example
+Subject: Re: Days off
+In reply to: 07-logan-seasonal.eml
+
+DRAFT
+Hi Logan,
+
+Thanks for reaching out, and welcome to the Durango hotel team!
+
+I wasn't able to pull up your PTO balance from our system automatically, so I've flagged this for a member of the People and Culture team to look into your record directly and follow up with the exact number of days you have remaining.
+
+Thanks for your patience, and we'll be in touch soon.
+
+Best,
+People and Culture
+Needs human review: true
+
+Tokens: 5,077 input, 340 output
