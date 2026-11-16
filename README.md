@@ -13,3 +13,5 @@ This repository holds materials created for GBUS 562: AI Language Models at the 
    - Week 3: a [RAG tool](week-03/ask.py) that answers questions from Copperline Manufacturing's finance documents, built with Claude Code.
 4. week-04
    - Week 4: an [AI agent](week-04/agent.py) that prepares replies to HR emails using tools from an [MCP server](week-04/hr_mcp_server.py), built with Claude Code. It works for any organization folder (`--org`): [Hartwell Foods](week-04/hartwell-hr/) and [Ridgeline Hotels](week-04/ridgeline-hotels/), with seven [Ridgeline runs](week-04/runs/) and a [write-up](week-04/writeup.md).
+5. week-05
+   - Week 5: a team of AI agents that prepares a bicycle maker's response to supplier emails, built with Claude Code. Data, supplier emails, and agent prompts are in [brookfield-bikes](week-05/brookfield-bikes/).

@@ -1,0 +1,105 @@
+Email: week-05/brookfield-bikes/supplier-emails/02-kendall-tire-options.eml
+Model: claude-sonnet-5
+
+======================================================================
+Orchestrator
+======================================================================
+    [tokens] orchestrator: 1,622 in, 56 out  (so far: 1,622 in, 56 out, 1 calls)
+
+*** CHOICE 1: run_supply_analyst
+
+>>> HANDOFF  coordinator -> analyst: supplier email
+    From: Lisa Moreno <l.moreno@kendalltire.example>
+    To: Purchasing <purchasing@brookfieldbikes.example>
+    Subject: PO-7795 - TR-29 tires - two options, please choose
+    
+    Hi,
+    
+    About PO-7795 for 400 TR-29 trail tires: a mixing machine at our plant is down
+    for repairs, so we can't fill the whole order at once. We can offer two options:
+    
+    Option 1: Ship 160 tires on the scheduled date, and the remaining 240 two weeks
+    later.
+    
+    Option 2: Hold the order and ship all 400 tires together, four days after the
+    scheduled date.
+    
+    Please tell us which option you prefer within two business days. If we don't
+    hear from you, we'll go with Option 2.
+    
+    Thanks,
+    Lisa Moreno
+    Customer Service, Kendall Tire Supply
+    
+Brookfield supply data: week-05/brookfield-bikes
+    [tokens] analyst: 2,730 in, 139 out  (so far: 2,730 in, 139 out, 1 calls)
+    analyst tool call 1: get_part {"part_id": "TR-29"}
+    analyst tool call 2: get_orders_for_part {"part_id": "TR-29"}
+    [tokens] analyst: 3,469 in, 273 out  (so far: 6,199 in, 412 out, 2 calls)
+    analyst tool call 3: check_coverage {"part_id": "TR-29", "arrivals": [{"qty": 160, "day": 8}, {"qty": 240, "day": 22}]}
+    analyst tool call 4: check_coverage {"part_id": "TR-29", "arrivals": [{"qty": 400, "day": 12}]}
+    [tokens] analyst: 4,806 in, 673 out  (so far: 11,005 in, 1,085 out, 3 calls)
+
+>>> HANDOFF  analyst -> coordinator: brief (4 tool calls)
+    {
+      "part_id": "TR-29",
+      "what_changed": "Supplier offers two shipment options for PO-7795 (400 TR-29 tires): Option 1 ships 160 units on day 8 and the remaining 240 units on day 22, while Option 2 ships all 400 units together on day 12 (default if no response is given).",
+      "orders_at_risk": [
+        {
+          "order_id": "O-1046",
+          "customer": "Hilltop Outfitters",
+          "units_short": 40,
+          "ship_day": 9,
+          "ready_day": 12,
+          "late_penalty": false
+        }
+      ],
+      "options": [
+        {
+          "name": "Option 1: 160 on day 8, 240 on day 22",
+          "order_ids_at_risk": []
+        },
+        {
+          "name": "Option 2: all 400 on day 12 (default)",
+          "order_ids_at_risk": [
+            "O-1046"
+          ]
+        }
+      ],
+      "decisions_for_a_person": [
+        "Choose between Option 1 (split shipment, fully covers all three open orders including O-1046 on time) and Option 2 (single shipment, but delays O-1046 by 3 days, short 40 units on its ship day) within two business days, or Option 2 will be applied by default."
+      ],
+      "supplier_questions": [
+        "Which shipment option (Option 1 or Option 2) does Brookfield prefer for PO-7795?"
+      ]
+    }
+    [tokens] orchestrator: 2,164 in, 1,118 out  (so far: 3,786 in, 1,174 out, 2 calls)
+
+*** CHOICE 2: finish {"summary": "Kendall Tire can't fulfill PO-7795 (400 TR-29 tires) in one shipment due to equipment issues and is offering two options: (1) split shipment - 160 tires on the original date, 240 two weeks later, which fully covers all open orders including O-1046 (Hilltop Outfitters) on time; or (2) a single shipment of all 400 tires 4 days late, which would leave O-1046 short by 40 units on its ship day (3-day delay risk, no contractual penalty). Supplier needs our choice within 2 business days or will default to Option 2. Since this is a supplier commitment decision affecting a customer order, a person should choose between the options and reply to Kendall Tire. No draft reply or customer notice was created since the outcome depends on which option is selected.", "person_must_decide": true}
+
+Stopped: finish was called (2 tool calls)
+
+======================================================================
+Summary
+======================================================================
+Drafts saved: 0
+
+Drafts marked for a person: 0
+
+Decisions for a person: 1
+  - Choose between Option 1 (split shipment, fully covers all three open orders including O-1046 on time) and Option 2 (single shipment, but delays O-1046 by 3 days, short 40 units on its ship day) within two business days, or Option 2 will be applied by default.
+
+Tokens used by each specialist
+  specialist         calls     input    output
+  orchestrator           2     3,786     1,174
+  analyst                3    11,005     1,085
+  total                  5    14,791     2,259
+
+Total tokens: 17,050 (14,791 input, 2,259 output)
+
+======================================================================
+Orchestrator's summary for a person
+======================================================================
+Kendall Tire can't fulfill PO-7795 (400 TR-29 tires) in one shipment due to equipment issues and is offering two options: (1) split shipment - 160 tires on the original date, 240 two weeks later, which fully covers all open orders including O-1046 (Hilltop Outfitters) on time; or (2) a single shipment of all 400 tires 4 days late, which would leave O-1046 short by 40 units on its ship day (3-day delay risk, no contractual penalty). Supplier needs our choice within 2 business days or will default to Option 2. Since this is a supplier commitment decision affecting a customer order, a person should choose between the options and reply to Kendall Tire. No draft reply or customer notice was created since the outcome depends on which option is selected.
+
+A person must make a decision: YES
