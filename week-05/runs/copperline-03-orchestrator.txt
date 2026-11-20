@@ -1,0 +1,140 @@
+Org:    week-05/copperline-coffee
+Email:  week-05/copperline-coffee/supplier-emails/03-ashgrove-burr-delay.eml
+Model:  claude-sonnet-5
+Drafts: week-05/drafts/copperline-coffee
+Columns found:
+  parts.csv: part_id=part_id, description=description, on_hand=on_hand, supplier=supplier
+  inbound.csv: po_number=po_number, part_id=part_id, supplier=supplier, quantity=qty, arrives_in_days=arrives_in_days
+  bill-of-materials.csv: product=product, part_id=part_id, per_unit=per_unit
+  orders.csv: order_id=order_id, customer=customer, contact_email=contact_email, product=product, quantity=units, ship_day=ship_by_day, late_penalty=late_penalty
+  suppliers.csv: supplier=supplier, contact_name=contact_name, contact_email=contact_email, part_id=part_id
+
+======================================================================
+Orchestrator
+======================================================================
+    [tokens] orchestrator: 1,528 in, 57 out  (so far: 1,528 in, 57 out, 1 calls)
+
+*** CHOICE 1: run_supply_analyst
+
+>>> HANDOFF  coordinator -> analyst: supplier email
+    From: Priya Raman <p.raman@ashgroveprecision.example>
+    To: Purchasing <purchasing@copperlinecoffee.example>
+    Subject: PO-5531 - BR-64 burr sets - arriving 3 days late
+    
+    Hello,
+    
+    A heat-treatment furnace at our plant needed an unplanned repair, so PO-5531
+    for 120 BR-64 burr sets will arrive 3 days after the scheduled date. The full
+    quantity will ship together.
+    
+    Please let me know if this causes any problems on your side.
+    
+    Best,
+    Priya Raman
+    Order Management, Ashgrove Precision
+    
+Supply data: week-05/copperline-coffee
+Columns found:
+  parts.csv: part_id=part_id, description=description, on_hand=on_hand, supplier=supplier
+  inbound.csv: po_number=po_number, part_id=part_id, supplier=supplier, quantity=qty, arrives_in_days=arrives_in_days
+  bill-of-materials.csv: product=product, part_id=part_id, per_unit=per_unit
+  orders.csv: order_id=order_id, customer=customer, contact_email=contact_email, product=product, quantity=units, ship_day=ship_by_day, late_penalty=late_penalty
+  suppliers.csv: supplier=supplier, contact_name=contact_name, contact_email=contact_email, part_id=part_id
+    [tokens] analyst: 2,644 in, 141 out  (so far: 2,644 in, 141 out, 1 calls)
+    analyst tool call 1: get_part {"part_id": "BR-64"}
+    analyst tool call 2: get_orders_for_part {"part_id": "BR-64"}
+    [tokens] analyst: 3,391 in, 127 out  (so far: 6,035 in, 268 out, 2 calls)
+    analyst tool call 3: check_coverage {"part_id": "BR-64", "arrivals": [{"qty": 120, "day": 13}]}
+    [tokens] analyst: 4,010 in, 105 out  (so far: 10,045 in, 373 out, 3 calls)
+
+>>> HANDOFF  analyst -> coordinator: the brief in full (3 tool calls)
+    {
+      "part_id": "BR-64",
+      "what_changed": "PO-5531's 120 BR-64 burr sets, originally due in 10 days, will now arrive together 3 days later, on day 13.",
+      "orders_at_risk": [],
+      "options": [],
+      "decisions_for_a_person": [],
+      "supplier_questions": []
+    }
+    [tokens] orchestrator: 1,706 in, 85 out  (so far: 3,234 in, 142 out, 2 calls)
+
+Orchestrator says: No customer orders are affected by this 3-day delay, so no customer notices are needed. I'll send a brief acknowledgment reply to the supplier and close this out.
+
+*** CHOICE 2: draft_supplier_reply
+
+>>> HANDOFF  coordinator -> supplier_writer: email and brief (customer names removed)
+    {
+      "part_id": "BR-64",
+      "what_changed": "PO-5531's 120 BR-64 burr sets, originally due in 10 days, will now arrive together 3 days later, on day 13.",
+      "orders_at_risk": [],
+      "options": [],
+      "decisions_for_a_person": [],
+      "supplier_questions": []
+    }
+    [tokens] supplier_writer: 634 in, 201 out  (so far: 634 in, 201 out, 1 calls)
+
+>>> HANDOFF  supplier_writer -> reviewer: draft to supplier
+    Subject: RE: PO-5531 - BR-64 burr sets - arriving 3 days late
+    
+    Hello Priya,
+    
+    Thank you for the update. To confirm: PO-5531 for 120 BR-64 burr sets, originally due in 10 days, will now arrive together on day 13 (3 days later).
+    
+    Based on our current analysis, this delay does not put any orders at risk on our side.
+    
+    That said, if there's any way to ship even part of the quantity sooner to bring the date forward, we'd welcome that. Please let us know if that's possible.
+    
+    Best regards,
+    Purchasing, Copperline Coffee Machines
+    [tokens] reviewer: 903 in, 7 out  (so far: 903 in, 7 out, 1 calls)
+
+>>> HANDOFF  reviewer -> coordinator: APPROVE
+
+>>> HANDOFF  review step -> coordinator: supplier draft saved to week-05/drafts/copperline-coffee/orchestrator-03-ashgrove-burr-delay-supplier-reply.txt  [OK]
+
+FINAL DRAFT TO SUPPLIER
+Subject: RE: PO-5531 - BR-64 burr sets - arriving 3 days late
+
+Hello Priya,
+
+Thank you for the update. To confirm: PO-5531 for 120 BR-64 burr sets, originally due in 10 days, will now arrive together on day 13 (3 days later).
+
+Based on our current analysis, this delay does not put any orders at risk on our side.
+
+That said, if there's any way to ship even part of the quantity sooner to bring the date forward, we'd welcome that. Please let us know if that's possible.
+
+Best regards,
+Purchasing, Copperline Coffee Machines
+Marked for a person: no
+    [tokens] orchestrator: 2,149 in, 216 out  (so far: 5,383 in, 358 out, 3 calls)
+
+*** CHOICE 3: finish {"summary": "Ashgrove Precision reported a 3-day delay on PO-5531 (120 BR-64 burr sets, now arriving day 13 instead of day 10) due to an unplanned furnace repair. The supply analyst confirmed this delay does not put any customer orders at risk, so no customer notices were needed. A courteous acknowledgment reply has been drafted and saved for review, confirming the new date and asking if partial early shipment is possible.", "person_must_decide": false}
+
+Stopped: finish was called (3 tool calls)
+
+======================================================================
+Summary
+======================================================================
+Drafts saved: 1
+  week-05/drafts/copperline-coffee/orchestrator-03-ashgrove-burr-delay-supplier-reply.txt
+
+Drafts marked for a person: 0
+
+Decisions for a person: 0
+
+Tokens used by each specialist
+  specialist         calls     input    output
+  orchestrator           3     5,383       358
+  analyst                3    10,045       373
+  supplier_writer        1       634       201
+  reviewer               1       903         7
+  total                  8    16,965       939
+
+Total tokens: 17,904 (16,965 input, 939 output)
+
+======================================================================
+Orchestrator's summary for a person
+======================================================================
+Ashgrove Precision reported a 3-day delay on PO-5531 (120 BR-64 burr sets, now arriving day 13 instead of day 10) due to an unplanned furnace repair. The supply analyst confirmed this delay does not put any customer orders at risk, so no customer notices were needed. A courteous acknowledgment reply has been drafted and saved for review, confirming the new date and asking if partial early shipment is possible.
+
+A person must make a decision: no

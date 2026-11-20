@@ -1,17 +1,19 @@
-"""Fixed-order pipeline for one Brookfield Bicycle Company supplier email.
+"""Fixed-order pipeline for one supplier email, for any company folder (--org).
 
 Runs the specialists from specialists.py in this order:
     1. The supply analyst.
     2. A customer notice for each order at risk (skipped if there are none).
     3. A reply to the supplier.
-Every draft goes through the review step and is saved in week-05/drafts. At the end it
-prints a summary: drafts saved, drafts marked for a person, decisions for a person, and
-total tokens.
+Every draft goes through the review step, is saved in week-05/drafts/<company folder
+name> with "pipeline-" in front of its file name, and is printed as the final draft. At the end it prints a summary: drafts saved,
+drafts marked for a person, decisions for a person, and total tokens.
 
 Usage (from the top of the repository):
     .venv/bin/python week-05/pipeline.py --email week-05/brookfield-bikes/supplier-emails/01-northgate-controller-delay.eml
-    .venv/bin/python week-05/pipeline.py --email EMAIL.eml --save run.txt
+    .venv/bin/python week-05/pipeline.py --org week-05/copperline-coffee --email week-05/copperline-coffee/supplier-emails/01-danforth-pump-delay.eml --save week-05/runs/copperline-01-pipeline.txt
 
+--org FOLDER is the company folder: five CSV files, supplier-emails/ and prompts/
+(default: week-05/brookfield-bikes).
 --save FILE also writes everything printed (including the MCP server's log lines) to FILE
 as UTF-8.
 """
@@ -75,8 +77,7 @@ def run(email_path):
     stem = email_path.stem
     saved, problems = [], []
 
-    print(f"Email: {email_path}")
-    print(f"Model: {sp.MODEL}")
+    print_header(email_path)
 
     section("Step 1: supply analyst")
     brief = sp.run_analyst(email_path)
@@ -97,6 +98,14 @@ def run(email_path):
     saved.append(sp.reviewed_supplier_reply(email_path, brief, name=f"{stem}-supplier-reply"))
 
     print_summary(saved, brief, problems)
+
+
+def print_header(email_path):
+    print(f"Org:    {sp.shown(sp.DATA_DIR)}")
+    print(f"Email:  {email_path}")
+    print(f"Model:  {sp.MODEL}")
+    print(f"Drafts: {sp.shown(sp.DRAFTS)}")
+    print("Columns found:\n" + sp.describe_columns(sp.DATA_DIR))
 
 
 def print_summary(saved, brief, problems):
@@ -125,19 +134,32 @@ def print_summary(saved, brief, problems):
 
 
 def main():
-    cli(run, "Run the Brookfield specialists in a fixed order on one supplier email.")
+    cli(run, "Run the specialists in a fixed order on one supplier email.", "pipeline-")
 
 
-def cli(run, description):
-    """--email and --save handling, shared with orchestrator.py."""
+def cli(run, description, prefix):
+    """--email and --save handling, shared with orchestrator.py.
+
+    prefix goes in front of every draft file name (e.g. "pipeline-").
+    """
+    sp.DRAFT_PREFIX = prefix
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--email", type=Path, required=True,
                         help="path of one supplier email (.eml)")
     parser.add_argument("--save", type=Path, metavar="FILE",
                         help="also write everything printed to this UTF-8 text file")
+    parser.add_argument("--org", type=Path, metavar="FOLDER",
+                        help="company folder with the five CSV files, supplier-emails/ "
+                             "and prompts/ (default: week-05/brookfield-bikes)")
     args = parser.parse_args()
     if not args.email.is_file():
         parser.error(f"--email {args.email} is not a file")
+    if args.org and not args.org.is_dir():
+        parser.error(f"--org {args.org} is not a folder")
+    try:
+        sp.set_org(args.org)
+    except sp.ColumnError as exc:
+        parser.error(f"--org {args.org}: {exc}")
 
     if args.save:
         with tee_to(args.save):

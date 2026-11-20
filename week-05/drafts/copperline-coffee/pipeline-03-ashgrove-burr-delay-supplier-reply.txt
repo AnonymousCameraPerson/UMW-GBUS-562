@@ -1,0 +1,17 @@
+To: supplier
+Status: OK
+Reviewer: APPROVE after 0 revision(s)
+Saved: 2026-11-17 17:41
+------------------------------------------------------------
+Subject: RE: PO-5531 - BR-64 burr sets - arriving 3 days late
+
+Hello Priya,
+
+Thank you for the update. To confirm, PO-5531 for 120 BR-64 burr sets will now arrive on day 13 instead of day 10, a 3-day delay, still as a single full-quantity shipment.
+
+Based on our current schedule, this delay does not put any orders at risk on our side.
+
+That said, if there is any way to ship even part of the 120 units sooner, that would help us maintain buffer against any further disruption. Please let us know if that's possible.
+
+Best regards,
+Purchasing, Copperline Coffee Machines

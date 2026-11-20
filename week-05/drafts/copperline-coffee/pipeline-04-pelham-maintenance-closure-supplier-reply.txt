@@ -1,0 +1,6 @@
+To: supplier
+Status: OK
+Reviewer: APPROVE after 0 revision(s)
+Saved: 2026-11-17 17:45
+------------------------------------------------------------
+NO REPLY NEEDED

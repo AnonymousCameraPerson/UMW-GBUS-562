@@ -1,19 +1,19 @@
-"""Orchestrator for one Brookfield Bicycle Company supplier email: Claude decides which
-specialists to use.
+"""Orchestrator for one supplier email, for any company folder (--org): Claude decides
+which specialists to use.
 
-An agent (claude-sonnet-5) with the system prompt in brookfield-bikes/prompts/orchestrator.txt
-(read fresh on every run) and four tools:
+An agent (claude-sonnet-5) with the system prompt in the company's prompts/orchestrator.txt
+(read fresh on every run; default company week-05/brookfield-bikes) and four tools:
     run_supply_analyst      runs the supply analyst from specialists.py on the email
     draft_supplier_reply    writes, reviews and saves a reply to the supplier
     draft_customer_notice   writes, reviews and saves a notice for one order at risk
     finish                  a summary for a person, and whether a person must decide
-The drafts go through the same review step as pipeline.py and are saved in week-05/drafts.
-It stops after 10 tool calls. Each choice it makes is printed, then the same summary as
-the pipeline.
+The drafts go through the same review step as pipeline.py and are saved in
+week-05/drafts/<company folder name> with "orchestrator-" in front of each file name. It stops after 10 tool calls. Each choice it makes
+is printed, then the same summary as the pipeline.
 
 Usage (from the top of the repository):
     .venv/bin/python week-05/orchestrator.py --email week-05/brookfield-bikes/supplier-emails/02-kendall-tire-options.eml
-    .venv/bin/python week-05/orchestrator.py --email EMAIL.eml --save week-05/runs/02-orchestrator.txt
+    .venv/bin/python week-05/orchestrator.py --org week-05/copperline-coffee --email week-05/copperline-coffee/supplier-emails/01-danforth-pump-delay.eml --save week-05/runs/copperline-01-orchestrator.txt
 """
 
 import json
@@ -21,7 +21,7 @@ import json
 import anthropic
 
 import specialists as sp
-from pipeline import cli, print_summary, section
+from pipeline import cli, print_header, print_summary, section
 
 MAX_TOOL_CALLS = 10
 
@@ -69,7 +69,7 @@ TOOLS = [
     {
         "name": "finish",
         "description": (
-            "End the job. Give a short summary for Brookfield's purchasing manager, and say "
+            "End the job. Give a short summary for the purchasing manager, and say "
             "whether a person needs to make a decision."),
         "input_schema": {
             "type": "object",
@@ -148,8 +148,7 @@ class Job:
 
 
 def run(email_path):
-    print(f"Email: {email_path}")
-    print(f"Model: {sp.MODEL}")
+    print_header(email_path)
     job = Job(email_path)
     email = sp.read_email(email_path)
     client = anthropic.Anthropic(api_key=sp.api_key())
@@ -214,7 +213,7 @@ def run(email_path):
 
 
 def main():
-    cli(run, "Let Claude choose which Brookfield specialists to run on one supplier email.")
+    cli(run, "Let Claude choose which specialists to run on one supplier email.", "orchestrator-")
 
 
 if __name__ == "__main__":

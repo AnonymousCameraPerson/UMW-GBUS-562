@@ -1,0 +1,21 @@
+To: supplier
+Status: NEEDS A PERSON: orders at risk with a late penalty: O-2203, O-2205
+Reviewer: APPROVE after 0 revision(s)
+Saved: 2026-11-17 17:34
+------------------------------------------------------------
+Subject: RE: PO-5512 - PU-20 pumps - partial shipment
+
+Hello Diane,
+
+Thank you for the update. To confirm our understanding: PO-5512 will now arrive as 40 units on day 4 and the remaining 160 units on day 19, instead of all 200 on the original date.
+
+This shortfall affects our downstream schedule: we are short a combined 55 units across orders that need to ship between day 12 and day 17, which will push out delivery to those orders by up to 7 days.
+
+We are not able to share customer names or order details, but we can confirm the impact in units and days as needed.
+
+To help reduce this impact, could you let us know if any portion of the 160-unit balance could be shipped sooner, even in smaller partial batches? Any acceleration would help us minimize delays on our end.
+
+Please treat this as our acknowledgment of the revised schedule. We'll follow up with any further requirements.
+
+Best regards,
+Purchasing, Copperline Coffee Machines

@@ -1,0 +1,20 @@
+To: supplier
+Status: NEEDS A PERSON: orders at risk with a late penalty: O-2205, O-2203
+Reviewer: APPROVE after 0 revision(s)
+Saved: 2026-11-17 17:40
+------------------------------------------------------------
+Subject: RE: PO-5520 - BL-12 boilers - please choose a shipping option
+
+Hi Victor,
+
+Thanks for flagging this. To confirm our understanding:
+
+- Option A: 80 units on day 7, 120 units on day 21 — this would leave us 5 units short against one order until day 21, a 4-day delay for that order.
+- Option B: all 200 units on day 13 — this would leave us 40 units short against one order until day 13, a 1-day delay for that order.
+
+We're still evaluating which option works best on our end and will confirm our choice within your three-business-day window.
+
+In the meantime, is there any way to ship more units sooner than either option currently allows — for example, a partial shipment earlier than day 7, or pulling the day 21 balance in Option A forward? That would help reduce the impact on our side regardless of which option we choose.
+
+Thanks,
+Purchasing, Copperline Coffee Machines

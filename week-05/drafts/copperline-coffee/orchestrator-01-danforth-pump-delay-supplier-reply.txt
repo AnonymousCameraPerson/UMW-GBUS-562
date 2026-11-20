@@ -1,0 +1,18 @@
+To: supplier
+Status: NEEDS A PERSON: orders at risk with a late penalty: O-2203, O-2205
+Reviewer: APPROVE after 0 revision(s)
+Saved: 2026-11-17 17:18
+------------------------------------------------------------
+Subject: RE: PO-5512 - PU-20 pumps - partial shipment
+
+Hello Diane,
+
+Thank you for the update. To confirm our understanding: PO-5512 will now ship as 40 pumps on day 4 (as scheduled), with the remaining 160 pumps arriving on day 19, a 15-day delay.
+
+This shortfall affects 55 units across our downstream orders and pushes fulfillment on those orders by up to 7 days. This is a meaningful impact on our side, so we'd like to understand what options exist to reduce it — specifically, whether Danforth can expedite any portion of the remaining 160 units ahead of day 19, even a partial shipment.
+
+Regarding the customer order breakdown: we're not able to share customer names or order-level details. We can confirm the total shortfall is 160 units if that helps with your planning.
+
+We'll confirm our decision on how to proceed once we've reviewed our options internally. Please let us know as soon as possible if any earlier partial delivery becomes available.
+
+Purchasing, Copperline Coffee Machines

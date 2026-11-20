@@ -1,7 +1,11 @@
-"""Specialists shared by Brookfield Bicycle Company's coordinators.
+"""Specialists shared by the supplier-response coordinators, for any company folder.
+
+A company folder (week-05/brookfield-bikes by default; set_org() or --org picks another,
+such as week-05/copperline-coffee) holds the five CSV files, supplier-emails/ and
+prompts/. Column names are not assumed: csv_columns.py works them out from each header.
 
 Four specialists, each a Claude call (model claude-sonnet-5) whose system prompt is read
-fresh from week-05/brookfield-bikes/prompts on every run:
+fresh from the company's prompts/ folder on every run:
 
     run_analyst(email)                  agent with the tools of supply_mcp_server.py; stops
                                         after 10 tool calls; returns its brief (a dict)
@@ -12,7 +16,7 @@ fresh from week-05/brookfield-bikes/prompts on every run:
 The review step (reviewed_supplier_reply, reviewed_customer_notice) runs a writer, then
 the reviewer, and revises at most 2 times. It then checks in code that no customer name
 is in a supplier draft and no supplier name is in a customer draft, and saves the draft in
-week-05/drafts. A draft is marked for a person if it fails either check, if its order has
+week-05/drafts/<company folder name> (named with DRAFT_PREFIX in front), then prints it as the final draft. A draft is marked for a person if it fails either check, if its order has
 a late penalty (for a supplier reply: any order at risk has one), or if the reviewer never
 approved it.
 
@@ -24,10 +28,11 @@ API-Key.rtf there). It is only held in memory: never written to a file or printe
 
 Quick test, from the top of the repository (this calls Claude and saves drafts):
     .venv/bin/python week-05/specialists.py week-05/brookfield-bikes/supplier-emails/01-northgate-controller-delay.eml
+    .venv/bin/python week-05/specialists.py --org week-05/copperline-coffee week-05/copperline-coffee/supplier-emails/01-danforth-pump-delay.eml
 """
 
+import argparse
 import asyncio
-import csv
 import json
 import re
 import subprocess
@@ -40,13 +45,21 @@ import anthropic
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
+from csv_columns import TABLES, ColumnError, describe_columns, read_table
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 KEY_DIR = REPO.parent                      # the folder above the repository
-DATA_DIR = HERE / "brookfield-bikes"
-PROMPTS = DATA_DIR / "prompts"
-DRAFTS = HERE / "drafts"
+DEFAULT_ORG = HERE / "brookfield-bikes"
 SERVER = HERE / "supply_mcp_server.py"
+
+# The company folder in use. set_org() changes all three.
+DATA_DIR = DEFAULT_ORG
+PROMPTS = DATA_DIR / "prompts"
+DRAFTS = HERE / "drafts" / DATA_DIR.name
+# Put in front of every draft file name, so pipeline.py and orchestrator.py drafts
+# don't overwrite each other ("pipeline-", "orchestrator-"; empty when run directly).
+DRAFT_PREFIX = ""
 
 MODEL = "claude-sonnet-5"
 MAX_TOKENS = 16000
@@ -62,7 +75,7 @@ PROMPT_FILES = {
 
 # The only order facts a customer notice is written from. Day numbers (days from today)
 # are left out so notices don't tell customers "day 26".
-CUSTOMER_FACT_FIELDS = ("order_id", "customer", "model", "bikes", "days_late")
+CUSTOMER_FACT_FIELDS = ("order_id", "customer", "product", "quantity", "days_late")
 
 BRIEF_SCHEMA = {
     "type": "object",
@@ -138,15 +151,34 @@ def api_key():
     return _api_key
 
 
+def set_org(folder=None):
+    """Use this company folder for data, prompts and drafts (None: Brookfield Bikes)."""
+    global DATA_DIR, PROMPTS, DRAFTS
+    folder = Path(folder).resolve() if folder else DEFAULT_ORG
+    missing = [n for n in TABLES if not (folder / n).is_file()]
+    missing += [f"prompts/{f}" for f in PROMPT_FILES.values()
+                if not (folder / "prompts" / f).is_file()]
+    if missing:
+        raise SystemExit(f"Company folder {folder.name} is missing: {', '.join(missing)}")
+    describe_columns(folder)        # raises ColumnError now if a header can't be read
+    DATA_DIR, PROMPTS, DRAFTS = folder, folder / "prompts", HERE / "drafts" / folder.name
+    return folder
+
+
+def shown(path):
+    """A path relative to the repository, so logs don't show the home folder."""
+    path = Path(path).resolve()
+    return path.relative_to(REPO) if path.is_relative_to(REPO) else path
+
+
 def prompt(name):
     """Read a specialist's system prompt fresh, so edits apply on the next run."""
     return (PROMPTS / PROMPT_FILES[name]).read_text(encoding="utf-8").strip()
 
 
 def read_csv(name):
-    with (DATA_DIR / name).open(newline="", encoding="utf-8-sig") as f:
-        return [{k.strip(): (v or "").strip() for k, v in row.items() if k}
-                for row in csv.DictReader(f)]
+    """Rows keyed by role (product, quantity, ship_day, ...), whatever the headers say."""
+    return read_table(DATA_DIR, name)
 
 
 def customer_terms():
@@ -259,7 +291,9 @@ async def run_analyst_async(email):
     handoff("coordinator", "analyst", "supplier email", email)
     system = prompt("analyst")
     client = anthropic.AsyncAnthropic(api_key=api_key())
-    server = StdioServerParameters(command=sys.executable, args=[str(SERVER)], cwd=str(REPO))
+    server = StdioServerParameters(command=sys.executable,
+                                   args=[str(SERVER), "--org", str(shown(DATA_DIR))],
+                                   cwd=str(REPO))
 
     async with stdio_client(server) as (read, write):
         async with ClientSession(read, write) as session:
@@ -307,7 +341,7 @@ async def run_analyst_async(email):
                 messages.append({"role": "user", "content": results})
 
     brief = json.loads(text_of(response))
-    handoff("analyst", "coordinator", f"brief ({tool_calls} tool calls)", brief)
+    handoff("analyst", "coordinator", f"the brief in full ({tool_calls} tool calls)", brief)
     return brief
 
 
@@ -366,12 +400,12 @@ def customer_order_facts(order_id, brief):
     risk = next((o for o in brief["orders_at_risk"] if o["order_id"] == order_id), None)
     if risk is None:
         raise ValueError(f"Order {order_id} is not at risk in the brief")
-    ship_day, ready = int(row["ship_in_days"]), risk["ready_day"]
+    ship_day, ready = int(float(row["ship_day"])), risk["ready_day"]
     return {
         "order_id": order_id,
         "customer": row["customer"],
-        "model": row["model"],
-        "bikes": int(row["qty"]),
+        "product": row["product"],
+        "quantity": int(float(row["quantity"])),
         "planned_ship_day": ship_day,
         "expected_ship_day": ready,
         "days_late": (ready - ship_day) if ready is not None else "not yet known",
@@ -425,8 +459,8 @@ def write_and_review(writer_name, write, facts, recipient):
 
 
 def save_draft(name, recipient, draft, approved, revisions, reasons):
-    DRAFTS.mkdir(exist_ok=True)
-    path = DRAFTS / f"{name}.txt"
+    DRAFTS.mkdir(parents=True, exist_ok=True)
+    path = DRAFTS / f"{DRAFT_PREFIX}{name}.txt"
     status = ("NEEDS A PERSON: " + "; ".join(reasons)) if reasons else "OK"
     header = (f"To: {recipient}\nStatus: {status}\n"
               f"Reviewer: {'APPROVE' if approved else 'not approved'} "
@@ -436,7 +470,15 @@ def save_draft(name, recipient, draft, approved, revisions, reasons):
     return path
 
 
-def finish(name, recipient, draft, result, revisions, banned, banned_what, penalty_reason):
+def print_final(title, draft, needs_person):
+    print(f"\n{title}")
+    print(draft)
+    print(f"Marked for a person: {'yes' if needs_person else 'no'}")
+    sys.stdout.flush()
+
+
+def finish(name, recipient, draft, result, revisions, banned, banned_what, penalty_reason,
+           title):
     reasons = []
     found = find_terms(draft, banned)
     if found:
@@ -452,6 +494,7 @@ def finish(name, recipient, draft, result, revisions, banned, banned_what, penal
     handoff("review step", "coordinator",
             f"{recipient} draft saved to {path.relative_to(REPO)}"
             + (f"  [NEEDS A PERSON: {'; '.join(reasons)}]" if reasons else "  [OK]"))
+    print_final(title, draft, bool(reasons))
     return outcome
 
 
@@ -467,7 +510,8 @@ def reviewed_supplier_reply(email, brief, name="supplier-reply"):
     return finish(name, "supplier", draft, result, revisions, customer_terms(),
                   "a customer",
                   f"orders at risk with a late penalty: {', '.join(penalties)}"
-                  if penalties else None)
+                  if penalties else None,
+                  "FINAL DRAFT TO SUPPLIER")
 
 
 def reviewed_customer_notice(order, name=None):
@@ -481,7 +525,8 @@ def reviewed_customer_notice(order, name=None):
     return finish(name or f"customer-{order['order_id']}", "customer", draft, result,
                   revisions, supplier_terms(), "a supplier",
                   f"order {order['order_id']} has a late penalty"
-                  if order.get("late_penalty") else None)
+                  if order.get("late_penalty") else None,
+                  f"FINAL DRAFT TO CUSTOMER {order['order_id']}")
 
 
 # ---------------------------------------------------------------------------
@@ -489,9 +534,13 @@ def reviewed_customer_notice(order, name=None):
 # ---------------------------------------------------------------------------
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit("Usage: .venv/bin/python week-05/specialists.py EMAIL.eml")
-    path = Path(sys.argv[1])
+    parser = argparse.ArgumentParser(description="Quick test of the specialists on one email.")
+    parser.add_argument("email", type=Path, help="path of one supplier email (.eml)")
+    parser.add_argument("--org", type=Path, metavar="FOLDER",
+                        help="company folder (default: week-05/brookfield-bikes)")
+    args = parser.parse_args()
+    set_org(args.org)
+    path = args.email
     stem = path.stem
     brief = run_analyst(path)
     reviewed_supplier_reply(path, brief, name=f"{stem}-supplier-reply")

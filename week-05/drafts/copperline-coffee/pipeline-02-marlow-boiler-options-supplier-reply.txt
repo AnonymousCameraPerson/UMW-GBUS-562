@@ -1,0 +1,23 @@
+To: supplier
+Status: NEEDS A PERSON: orders at risk with a late penalty: O-2203
+Reviewer: APPROVE after 0 revision(s)
+Saved: 2026-11-17 17:38
+------------------------------------------------------------
+Subject: RE: PO-5520 - BL-12 boilers - please choose a shipping option
+
+Hi Victor,
+
+Thanks for the heads-up and the two options on PO-5520 (200 BL-12 boilers).
+
+As we understand it:
+- Option A: 80 units on day 7, 120 units on day 21
+- Option B: all 200 units on day 13
+
+Both options cause a shortfall against our downstream schedules, so we need a short time to confirm internally. We'll let you know our choice within your 3-business-day deadline.
+
+In the meantime, is there any way to pull the remaining units in sooner under either option — for example, shipping more than 80 upfront on Option A, or shortening the 6-day delay on Option B? Either would help reduce the impact on our side.
+
+We'll be in touch with our decision by your deadline.
+
+Best regards,
+Purchasing, Copperline Coffee Machines
